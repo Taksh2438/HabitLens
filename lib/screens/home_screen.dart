@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
 import '../models/habit.dart';
-import '../services/streak_service.dart';
+import 'habit_details_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/streak_service.dart';
 import '../providers/habit_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -223,6 +224,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       .toList();
 
                   return ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      0,
+                      0,
+                      0,
+                      90,
+                    ),
                     children: [
 
                       for (final habit in incompleteHabits)
@@ -260,6 +267,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () {
                               if (selectionMode) {
                                 toggleSelection(habit.id);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HabitDetailsScreen(
+                                      habit: habit,
+                                    ),
+                                  ),
+                                );
                               }
                             },
                           ),
@@ -326,6 +342,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () {
                               if (selectionMode) {
                                 toggleSelection(habit.id);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HabitDetailsScreen(
+                                      habit: habit,
+                                    ),
+                                  ),
+                                );
                               }
                             },
                           ),
