@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/habit.dart';
-import '../services/storage_service.dart';
 import '../services/streak_service.dart';
-import 'stats_screen.dart';
 import 'package:provider/provider.dart';
-import '../providers/theme_provider.dart';
+import '../providers/habit_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,23 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Habit> habits = [];
   final Set<String> selectedHabits = {};
-
-  @override
-  void initState() {
-    super.initState();
-    loadHabits();
-  }
-
-  Future<void> loadHabits() async {
-    habits = await StorageService.loadHabits();
-    setState(() {});
-  }
-
-  Future<void> saveHabits() async {
-    await StorageService.saveHabits(habits);
-  }
 
   Future<void> addHabit() async {
     final controller = TextEditingController();
@@ -63,26 +45,28 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
+    if (!mounted) return;
+
     if (name == null || name.isEmpty) return;
 
-    habits.add(
-      Habit(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: name,
-        createdDate: DateTime.now(),
-      ),
-    );
+    final habitProvider =
+        Provider.of<HabitProvider>(
+          context,
+          listen: false,
+        );
 
-    await saveHabits();
-    setState(() {});
-  }
+    await habitProvider.addHabit(name);
+
+    }
 
   Future<void> toggleHabitCompletion(Habit habit) async {
-    StreakService.toggleToday(habit);
+    final habitProvider =
+        Provider.of<HabitProvider>(
+          context,
+          listen: false,
+        );
 
-    await saveHabits();
-
-    setState(() {});
+    await habitProvider.toggleHabit(habit);
   }
 
   void toggleSelection(String id) {
@@ -116,24 +100,34 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
+    if (!mounted) return;
+
     if (confirm != true) return;
 
-    habits.removeWhere(
-      (habit) => selectedHabits.contains(habit.id),
+    final habitProvider =
+        Provider.of<HabitProvider>(
+          context,
+          listen: false,
+        );
+
+    await habitProvider.deleteHabits(
+      selectedHabits.toList(),
     );
 
     selectedHabits.clear();
-
-    await saveHabits();
 
     setState(() {});
   }
 
   Future<void> editSelectedHabit() async {
-    final selectedId = selectedHabits.first;
+    final habitProvider =
+        Provider.of<HabitProvider>(
+          context,
+          listen: false,
+        );
 
-    final habit = habits.firstWhere(
-      (h) => h.id == selectedId,
+    final habit = habitProvider.habits.firstWhere(
+      (h) => h.id == selectedHabits.first,
     );
 
     final controller = TextEditingController(
@@ -146,7 +140,6 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Edit Habit'),
         content: TextField(
           controller: controller,
-          autofocus: true,
         ),
         actions: [
           TextButton(
@@ -168,20 +161,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result == null || result.isEmpty) return;
 
-    habit.name = result;
+    await habitProvider.editHabit(
+      habit.id,
+      result,
+    );
 
     selectedHabits.clear();
-
-    await saveHabits();
 
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final habitProvider =
+        Provider.of<HabitProvider>(context);
+
+    final habits = habitProvider.habits;
+
     final selectionMode = selectedHabits.isNotEmpty;
-    final themeProvider =
-      Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -191,29 +188,6 @@ class _HomeScreenState extends State<HomeScreen> {
               : 'HabitLens',
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              themeProvider.isDarkMode
-                  ? Icons.light_mode
-                  : Icons.dark_mode,
-            ),
-            onPressed: () {
-              themeProvider.toggleTheme();
-            },
-          ),
-        
-          IconButton(
-            icon: const Icon(Icons.bar_chart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const StatsScreen(),
-                ),
-              );
-            },
-          ),
-        
           if (selectedHabits.length == 1)
             IconButton(
               icon: const Icon(Icons.edit),
@@ -234,55 +208,133 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
               ),
             )
-          : ListView.builder(
-              itemCount: habits.length,
-              itemBuilder: (context, index) {
-                final habit = habits[index];
-                final selected =
-                    selectedHabits.contains(habit.id);
+            : Builder(
+                builder: (context) {
+                  final incompleteHabits = habits
+                      .where(
+                        (h) => !StreakService.isCompletedToday(h),
+                      )
+                      .toList();
 
-                final completedToday =
-                    StreakService.isCompletedToday(habit);
+                  final completedHabits = habits
+                      .where(
+                        (h) => StreakService.isCompletedToday(h),
+                      )
+                      .toList();
 
-                return Card(
-                  color: selected
-                      ? Colors.blue.shade200
-                      : null,
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  child: ListTile(
-                    leading: selectionMode
-                        ? Icon(
-                            selected
-                                ? Icons.check_circle
-                                : Icons.circle_outlined,
-                          )
-                        : null,
-                    title: Text(habit.name),
-                    subtitle: Text(
-                      'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
-                    ),
-                    trailing: Checkbox(
-                      value: completedToday,
-                      onChanged: (_) {
-                        if (!selectionMode) {
-                          toggleHabitCompletion(habit);
-                        }
-                      },
-                    ),
-                    onLongPress: () =>
-                        toggleSelection(habit.id),
-                    onTap: () {
-                      if (selectionMode) {
-                        toggleSelection(habit.id);
-                      }
-                    },
-                  ),
-                );
-              },
+                  return ListView(
+                    children: [
+
+                      for (final habit in incompleteHabits)
+                        Card(
+                          key: ValueKey(habit.id),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          color: selectedHabits.contains(habit.id)
+                              ? Colors.blue.shade200
+                              : null,
+                          child: ListTile(
+                            leading: selectionMode
+                                ? Icon(
+                                    selectedHabits.contains(habit.id)
+                                        ? Icons.check_circle
+                                        : Icons.circle_outlined,
+                                  )
+                                : null,
+                            title: Text(habit.name),
+                            subtitle: Text(
+                              'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
+                            ),
+                            trailing: Checkbox(
+                              value: StreakService.isCompletedToday(habit),
+                              onChanged: (_) {
+                                if (!selectionMode) {
+                                  toggleHabitCompletion(habit);
+                                }
+                              },
+                            ),
+                            onLongPress: () =>
+                                toggleSelection(habit.id),
+                            onTap: () {
+                              if (selectionMode) {
+                                toggleSelection(habit.id);
+                              }
+                            },
+                          ),
+                        ),
+                      
+                      if (incompleteHabits.isNotEmpty &&
+                          completedHabits.isNotEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(child: Divider()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                child: Text(
+                                  'Completed Today',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider()),
+                            ],
+                          ),
+                        ),
+
+                      for (final habit in completedHabits)
+                        Card(
+                          key: ValueKey(habit.id),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          color: selectedHabits.contains(habit.id)
+                              ? Colors.blue.shade200
+                              : null,
+                          child: ListTile(
+                            leading: selectionMode
+                                ? Icon(
+                                    selectedHabits.contains(habit.id)
+                                        ? Icons.check_circle
+                                        : Icons.circle_outlined,
+                                  )
+                                : null,
+                            title: Text(habit.name),
+                            subtitle: Text(
+                              'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
+                            ),
+                            trailing: Checkbox(
+                              value: StreakService.isCompletedToday(habit),
+                              onChanged: (_) {
+                                if (!selectionMode) {
+                                  toggleHabitCompletion(habit);
+                                }
+                              },
+                            ),
+                            onLongPress: () =>
+                                toggleSelection(habit.id),
+                            onTap: () {
+                              if (selectionMode) {
+                                toggleSelection(habit.id);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                  );
+                },
             ),
+              
       floatingActionButton: FloatingActionButton(
         onPressed: addHabit,
         child: const Icon(Icons.add),
