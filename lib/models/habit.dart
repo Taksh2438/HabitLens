@@ -1,8 +1,11 @@
 import 'habit_record.dart';
+import 'habit_type.dart';
 
 class Habit {
   String id;
   String name;
+  HabitType type;
+  double? targetValue;
   DateTime createdDate;
   int currentStreak;
   int longestStreak;
@@ -14,6 +17,8 @@ class Habit {
     required this.id,
     required this.name,
     required this.createdDate,
+    this.type = HabitType.checkbox,
+    this.targetValue,
     this.currentStreak = 0,
     this.longestStreak = 0,
     this.totalCompletions = 0,
@@ -25,6 +30,8 @@ class Habit {
     return {
       'id': id,
       'name': name,
+      'type': type.name,
+      'targetValue': targetValue,
       'createdDate': createdDate.toIso8601String(),
       'currentStreak': currentStreak,
       'longestStreak': longestStreak,
@@ -38,6 +45,11 @@ class Habit {
     return Habit(
       id: json['id'],
       name: json['name'],
+      type: HabitType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => HabitType.checkbox,
+      ),
+      targetValue: (json['targetValue'] as num?)?.toDouble(),
       createdDate: DateTime.parse(json['createdDate']),
       currentStreak: json['currentStreak'] ?? 0,
       longestStreak: json['longestStreak'] ?? 0,

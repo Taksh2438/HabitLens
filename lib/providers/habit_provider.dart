@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-
 import '../models/habit.dart';
-import '../services/storage_service.dart';
+import '../models/habit_type.dart';
+import 'package:flutter/material.dart';
 import '../services/streak_service.dart';
+import '../services/storage_service.dart';
 
 class HabitProvider extends ChangeNotifier {
   List<Habit> _habits = [];
@@ -18,11 +18,17 @@ class HabitProvider extends ChangeNotifier {
     await StorageService.saveHabits(_habits);
   }
 
-  Future<void> addHabit(String name) async {
+  Future<void> addHabit(
+    String name,
+    HabitType type,
+    double? targetValue,
+  ) async {
     _habits.add(
       Habit(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: name,
+        type: type,
+        targetValue: targetValue,
         createdDate: DateTime.now(),
       ),
     );
@@ -51,6 +57,19 @@ class HabitProvider extends ChangeNotifier {
 
   Future<void> toggleHabit(Habit habit) async {
     StreakService.toggleToday(habit);
+
+    await saveHabits();
+    notifyListeners();
+  }
+
+  Future<void> setHabitValue(
+    Habit habit,
+    double value,
+  ) async {
+    StreakService.setTodayValue(
+      habit,
+      value,
+    );
 
     await saveHabits();
     notifyListeners();

@@ -1,4 +1,5 @@
 import '../models/habit.dart';
+import '../models/habit_type.dart';
 import '../models/habit_record.dart';
 
 class StreakService {
@@ -11,11 +12,21 @@ class StreakService {
   static bool isCompletedToday(Habit habit) {
     final today = todayKey();
 
-    return habit.records.any(
-      (record) =>
-          record.date == today &&
-          record.completed,
+    final todayRecord = habit.records.where(
+      (record) => record.date == today,
     );
+
+    if (todayRecord.isEmpty) {
+      return false;
+    }
+
+    final record = todayRecord.first;
+
+    if (habit.type == HabitType.checkbox) {
+      return record.completed;
+    }
+
+    return (record.value ?? 0) >= (habit.targetValue ?? 0);
   }
 
   static void toggleToday(Habit habit) {
@@ -33,6 +44,35 @@ class StreakService {
         HabitRecord(
           date: today,
           completed: true,
+        ),
+      );
+    }
+
+    recalculate(habit);
+  }
+
+  static void setTodayValue(
+    Habit habit,
+    double value,
+  ) {
+    final today = todayKey();
+
+    final bool completed =
+        value >= (habit.targetValue ?? 0);
+
+    final index = habit.records.indexWhere(
+      (record) => record.date == today,
+    );
+
+    if (index >= 0) {
+      habit.records[index].value = value;
+      habit.records[index].completed = completed;
+    } else {
+      habit.records.add(
+        HabitRecord(
+          date: today,
+          completed: completed,
+          value: value,
         ),
       );
     }

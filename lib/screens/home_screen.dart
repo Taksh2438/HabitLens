@@ -1,9 +1,12 @@
 import '../models/habit.dart';
 import 'habit_details_screen.dart';
+import '../models/habit_type.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/streak_service.dart';
+import '../dialogs/add_habit_dialog.dart';
 import '../providers/habit_provider.dart';
+import '../dialogs/edit_habit_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,49 +19,27 @@ class _HomeScreenState extends State<HomeScreen> {
   final Set<String> selectedHabits = {};
 
   Future<void> addHabit() async {
-    final controller = TextEditingController();
-
-    final name = await showDialog<String>(
+    final result =
+        await showDialog<AddHabitResult>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Habit'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Habit name',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(
-                context,
-                controller.text.trim(),
-              );
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      builder: (_) => const AddHabitDialog(),
     );
+
+    if (result == null || result.name.isEmpty) {
+      return;
+    }
 
     if (!mounted) return;
 
-    if (name == null || name.isEmpty) return;
-
-    final habitProvider =
-        Provider.of<HabitProvider>(
-          context,
-          listen: false,
-        );
-
-    await habitProvider.addHabit(name);
-
-    }
+    await Provider.of<HabitProvider>(
+      context,
+      listen: false,
+    ).addHabit(
+      result.name,
+      result.type,
+      result.targetValue,
+    );
+  }
 
   Future<void> toggleHabitCompletion(Habit habit) async {
     final habitProvider =
@@ -123,53 +104,37 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> editSelectedHabit() async {
     final habitProvider =
         Provider.of<HabitProvider>(
-          context,
-          listen: false,
-        );
+      context,
+      listen: false,
+    );
 
     final habit = habitProvider.habits.firstWhere(
       (h) => h.id == selectedHabits.first,
     );
 
-    final controller = TextEditingController(
-      text: habit.name,
-    );
-
-    final result = await showDialog<String>(
+    final result =
+        await showDialog<EditHabitResult>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Habit'),
-        content: TextField(
-          controller: controller,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(
-                context,
-                controller.text.trim(),
-              );
-            },
-            child: const Text('Save'),
-          ),
-        ],
+      builder: (_) => EditHabitDialog(
+        habit: habit,
       ),
     );
 
-    if (result == null || result.isEmpty) return;
+    if (result == null) return;
 
-    await habitProvider.editHabit(
-      habit.id,
-      result,
-    );
+    habit.name = result.name;
+
+    if (habit.type == HabitType.number) {
+      habit.targetValue = result.targetValue;
+    }
+
+    await habitProvider.saveHabits();
 
     selectedHabits.clear();
 
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -234,56 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(18),
                       child: Row(
                         children: [
-
-                          SizedBox(
-                            width: 90,
-                            height: 90,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 90,
-                                  height: 90,
-                                  child: CircularProgressIndicator(
-                                    value: progress,
-                                    strokeWidth: 8,
-                                    backgroundColor: Colors.grey.shade300,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      progress == 1
-                                          ? Colors.green
-                                          : progress >= 0.75
-                                              ? Colors.lightGreen
-                                              : progress >= 0.50
-                                                  ? Colors.orange
-                                                  : progress >= 0.25
-                                                      ? Colors.deepOrange
-                                                      : Colors.red,
-                                    ),
-                                  ),
-                                ),
-
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '${(progress * 100).toStringAsFixed(0)}%',
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const Text(
-                                      'Done',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(width: 20),
-
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,51 +224,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                 const SizedBox(height: 10),
 
-                                const SizedBox(height: 10),
-
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
+                                Row(
                                   children: [
-
-                                    Chip(
-                                      avatar: Icon(Icons.check, size: 18),
-                                      label: Text('$completedToday Completed'),
-                                    ),
-
-                                    Chip(
-                                      avatar: Icon(Icons.pending, size: 18),
-                                      label: Text(
-                                        '${habits.length - completedToday} Remaining',
+                                    Expanded(
+                                      child: Text(
+                                        '✅ $completedToday/${habits.length}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-
-                                    Chip(
-                                      avatar: Icon(Icons.list, size: 18),
-                                      label: Text('${habits.length} Total'),
+                                    Text(
+                                      '${(progress * 100).toStringAsFixed(0)}%',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
 
                                 const SizedBox(height: 10),
 
+                                LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 8,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+
+                                const SizedBox(height: 6),
+
                                 Text(
-                                  progress == 0
-                                      ? "🚀 Your journey starts today."
-                                      : progress < 0.25
-                                          ? "💪 Keep the momentum going."
-                                          : progress < 0.50
-                                              ? "🔥 Great progress so far."
-                                              : progress < 0.75
-                                                  ? "⚡ You're over halfway there!"
-                                                  : progress < 1
-                                                      ? "🏁 Just a few habits left!"
-                                                      : "🏆 Perfect day! Every habit completed.",
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
+                                  progress == 1
+                                      ? 'All habits completed today 🎉'
+                                      : '${habits.length - completedToday} habit(s) remaining',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 13,
                                   ),
                                 ),
+
+                                const SizedBox(height: 10),
+
                               ],
                             ),
                           ),
@@ -366,17 +279,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Builder(
                     builder: (context) {
-                      final incompleteHabits = habits
-                          .where(
-                            (h) => !StreakService.isCompletedToday(h),
-                          )
-                          .toList();
+                      final incompleteHabits = habits.where((h) {
+                        if (h.type == HabitType.number) {
+                          return true;
+                        }
 
-                      final completedHabits = habits
-                          .where(
-                            (h) => StreakService.isCompletedToday(h),
-                          )
-                          .toList();
+                        return !StreakService.isCompletedToday(h);
+                      }).toList();
+
+                      final completedHabits = habits.where((h) {
+                        if (h.type == HabitType.number) {
+                          return false;
+                        }
+
+                        return StreakService.isCompletedToday(h);
+                      }).toList();
 
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(
@@ -408,14 +325,77 @@ class _HomeScreenState extends State<HomeScreen> {
                                 subtitle: Text(
                                   'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
                                 ),
-                                trailing: Checkbox(
-                                  value: StreakService.isCompletedToday(habit),
-                                  onChanged: (_) {
-                                    if (!selectionMode) {
-                                      toggleHabitCompletion(habit);
-                                    }
-                                  },
-                                ),
+                                trailing: habit.type == HabitType.checkbox
+                                    ? Checkbox(
+                                        value: StreakService.isCompletedToday(habit),
+                                        onChanged: (_) {
+                                          if (!selectionMode) {
+                                            toggleHabitCompletion(habit);
+                                          }
+                                        },
+                                      )
+                                    : Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.remove),
+                                            onPressed: () async {
+                                              final todayRecords = habit.records.where(
+                                                (r) => r.date == StreakService.todayKey(),
+                                              );
+
+                                              final current = todayRecords.isEmpty
+                                                  ? 0.0
+                                                  : (todayRecords.first.value ?? 0.0);
+
+                                              if (current > 0) {
+                                                await Provider.of<HabitProvider>(
+                                                  context,
+                                                  listen: false,
+                                                ).setHabitValue(
+                                                  habit,
+                                                  current - 1,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          Builder(
+                                            builder: (context) {
+                                              final todayRecords = habit.records.where(
+                                                (r) => r.date == StreakService.todayKey(),
+                                              );
+
+                                              final todayValue = todayRecords.isEmpty
+                                                  ? 0.0
+                                                  : (todayRecords.first.value ?? 0.0);
+
+                                              return Text(
+                                                '${todayValue.toInt()}/${habit.targetValue?.toInt() ?? 0}',
+                                              );
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.add),
+                                            onPressed: () async {
+                                              final todayRecords = habit.records.where(
+                                                (r) => r.date == StreakService.todayKey(),
+                                              );
+
+                                              final current = todayRecords.isEmpty
+                                                  ? 0.0
+                                                  : (todayRecords.first.value ?? 0.0);
+
+                                              await Provider.of<HabitProvider>(
+                                                context,
+                                                listen: false,
+                                              ).setHabitValue(
+                                                habit,
+                                                current + 1,
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                 onLongPress: () =>
                                     toggleSelection(habit.id),
                                 onTap: () {
