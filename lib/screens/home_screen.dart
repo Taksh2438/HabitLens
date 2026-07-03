@@ -6,7 +6,12 @@ import 'package:provider/provider.dart';
 import '../services/streak_service.dart';
 import '../dialogs/add_habit_dialog.dart';
 import '../providers/habit_provider.dart';
+import '../widgets/timer_habit_tile.dart';
 import '../dialogs/edit_habit_dialog.dart';
+import '../widgets/number_habit_tile.dart';
+import '../widgets/rating_habit_tile.dart';
+import '../widgets/counter_habit_tile.dart';
+import '../widgets/checkbox_habit_tile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
       result.name,
       result.type,
       result.targetValue,
+      result.hasGoal,
     );
   }
 
@@ -144,16 +150,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final habits = habitProvider.habits;
 
-    final completedToday = habits
-        .where(
-          (h) => StreakService.isCompletedToday(h),
-        )
-        .length;
+    final completedToday = habits.where((h) {
+      if (h.type == HabitType.counter) {
+        return false;
+      }
+
+      return StreakService.isCompletedToday(h);
+    }).length;
+
+    final goalHabits = habits.where(
+      (h) => h.type != HabitType.counter,
+    ).toList();
 
     final progress =
-        habits.isEmpty
+        goalHabits.isEmpty
             ? 0.0
-            : completedToday / habits.length;
+            : completedToday / goalHabits.length;
 
     final selectionMode = selectedHabits.isNotEmpty;
 
@@ -228,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        '✅ $completedToday/${habits.length}',
+                                        '✅ $completedToday/${goalHabits.length}',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -258,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Text(
                                   progress == 1
                                       ? 'All habits completed today 🎉'
-                                      : '${habits.length - completedToday} habit(s) remaining',
+                                      : '${goalHabits.length - completedToday} habit(s) remaining',
                                   style: TextStyle(
                                     color: Colors.grey.shade700,
                                     fontSize: 13,
@@ -325,77 +337,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                 subtitle: Text(
                                   'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
                                 ),
-                                trailing: habit.type == HabitType.checkbox
-                                    ? Checkbox(
-                                        value: StreakService.isCompletedToday(habit),
-                                        onChanged: (_) {
-                                          if (!selectionMode) {
-                                            toggleHabitCompletion(habit);
-                                          }
-                                        },
-                                      )
-                                    : Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.remove),
-                                            onPressed: () async {
-                                              final todayRecords = habit.records.where(
-                                                (r) => r.date == StreakService.todayKey(),
-                                              );
+                                trailing: switch (habit.type) {
+                                  HabitType.checkbox => CheckboxHabitTile(
+                                      value: StreakService.isCompletedToday(habit),
+                                      selectionMode: selectionMode,
+                                      onChanged: () {
+                                        toggleHabitCompletion(habit);
+                                      },
+                                    ),
 
-                                              final current = todayRecords.isEmpty
-                                                  ? 0.0
-                                                  : (todayRecords.first.value ?? 0.0);
+                                  HabitType.number => NumberHabitTile(
+                                      habit: habit,
+                                    ),
 
-                                              if (current > 0) {
-                                                await Provider.of<HabitProvider>(
-                                                  context,
-                                                  listen: false,
-                                                ).setHabitValue(
-                                                  habit,
-                                                  current - 1,
-                                                );
-                                              }
-                                            },
-                                          ),
-                                          Builder(
-                                            builder: (context) {
-                                              final todayRecords = habit.records.where(
-                                                (r) => r.date == StreakService.todayKey(),
-                                              );
+                                  HabitType.counter => CounterHabitTile(
+                                    habit: habit,
+                                  ),
 
-                                              final todayValue = todayRecords.isEmpty
-                                                  ? 0.0
-                                                  : (todayRecords.first.value ?? 0.0);
+                                  HabitType.timer => const TimerHabitTile(),
 
-                                              return Text(
-                                                '${todayValue.toInt()}/${habit.targetValue?.toInt() ?? 0}',
-                                              );
-                                            },
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.add),
-                                            onPressed: () async {
-                                              final todayRecords = habit.records.where(
-                                                (r) => r.date == StreakService.todayKey(),
-                                              );
-
-                                              final current = todayRecords.isEmpty
-                                                  ? 0.0
-                                                  : (todayRecords.first.value ?? 0.0);
-
-                                              await Provider.of<HabitProvider>(
-                                                context,
-                                                listen: false,
-                                              ).setHabitValue(
-                                                habit,
-                                                current + 1,
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
+                                  HabitType.rating => RatingHabitTile(
+                                    habit: habit,
+                                  ),
+                                },
                                 onLongPress: () =>
                                     toggleSelection(habit.id),
                                 onTap: () {

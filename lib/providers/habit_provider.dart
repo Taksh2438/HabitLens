@@ -22,6 +22,7 @@ class HabitProvider extends ChangeNotifier {
     String name,
     HabitType type,
     double? targetValue,
+    bool hasGoal,
   ) async {
     _habits.add(
       Habit(
@@ -30,6 +31,7 @@ class HabitProvider extends ChangeNotifier {
         type: type,
         targetValue: targetValue,
         createdDate: DateTime.now(),
+        hasGoal: hasGoal,
       ),
     );
 
@@ -73,5 +75,41 @@ class HabitProvider extends ChangeNotifier {
 
     await saveHabits();
     notifyListeners();
+  }
+
+  Future<void> incrementCounter(Habit habit) async {
+    final today = StreakService.todayKey();
+
+    final record = habit.records.where(
+      (r) => r.date == today,
+    );
+
+    final current = record.isEmpty
+        ? 0.0
+        : (record.first.value ?? 0);
+
+    await setHabitValue(
+      habit,
+      current + 1,
+    );
+  }
+
+  Future<void> decrementCounter(Habit habit) async {
+    final today = StreakService.todayKey();
+
+    final record = habit.records.where(
+      (r) => r.date == today,
+    );
+
+    final current = record.isEmpty
+        ? 0.0
+        : (record.first.value ?? 0);
+
+    if (current > 0) {
+      await setHabitValue(
+        habit,
+        current - 1,
+      );
+    }
   }
 }

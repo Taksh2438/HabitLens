@@ -4,26 +4,28 @@ import 'habit_type.dart';
 class Habit {
   String id;
   String name;
+  bool hasGoal;
   HabitType type;
-  double? targetValue;
-  DateTime createdDate;
+  bool isArchived;
   int currentStreak;
   int longestStreak;
+  double? targetValue;
+  DateTime createdDate;
   int totalCompletions;
-  bool isArchived;
   List<HabitRecord> records;
 
   Habit({
     required this.id,
-    required this.name,
-    required this.createdDate,
-    this.type = HabitType.checkbox,
     this.targetValue,
+    required this.name,
+    this.hasGoal = false,
     this.currentStreak = 0,
     this.longestStreak = 0,
-    this.totalCompletions = 0,
     this.isArchived = false,
+    required this.createdDate,
+    this.totalCompletions = 0,
     List<HabitRecord>? records,
+    this.type = HabitType.checkbox,
   }) : records = records ?? [];
 
   Map<String, dynamic> toJson() {
@@ -31,12 +33,13 @@ class Habit {
       'id': id,
       'name': name,
       'type': type.name,
+      'hasGoal': hasGoal,
+      'isArchived': isArchived,
       'targetValue': targetValue,
-      'createdDate': createdDate.toIso8601String(),
       'currentStreak': currentStreak,
       'longestStreak': longestStreak,
       'totalCompletions': totalCompletions,
-      'isArchived': isArchived,
+      'createdDate': createdDate.toIso8601String(),
       'records': records.map((r) => r.toJson()).toList(),
     };
   }
@@ -45,19 +48,20 @@ class Habit {
     return Habit(
       id: json['id'],
       name: json['name'],
+      hasGoal: json['hasGoal'] ?? false,
       type: HabitType.values.firstWhere(
         (e) => e.name == json['type'],
         orElse: () => HabitType.checkbox,
       ),
-      targetValue: (json['targetValue'] as num?)?.toDouble(),
-      createdDate: DateTime.parse(json['createdDate']),
+      isArchived: json['isArchived'] ?? false,
       currentStreak: json['currentStreak'] ?? 0,
       longestStreak: json['longestStreak'] ?? 0,
       totalCompletions: json['totalCompletions'] ?? 0,
-      isArchived: json['isArchived'] ?? false,
+      createdDate: DateTime.parse(json['createdDate']),
       records: (json['records'] as List<dynamic>? ?? [])
           .map((e) => HabitRecord.fromJson(e))
           .toList(),
+      targetValue: (json['targetValue'] as num?)?.toDouble(),
     );
   }
 }

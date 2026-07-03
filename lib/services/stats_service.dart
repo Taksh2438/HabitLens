@@ -1,6 +1,7 @@
 import 'dart:collection';
 import '../models/habit.dart';
 import '../models/app_stats.dart';
+import '../models/habit_type.dart';
 
 class StatsService {
   static AppStats calculate(List<Habit> habits) {
@@ -18,6 +19,11 @@ class StatsService {
     int totalRecords = 0;
 
     for (final habit in habits) {
+
+      if (habit.type == HabitType.counter) {
+        continue;
+      }
+
       completions += habit.totalCompletions;
 
       if (habit.longestStreak > longest) {
@@ -61,6 +67,11 @@ class StatsService {
     }
 
     for (final habit in habits) {
+
+      if (habit.type == HabitType.counter) {
+        continue;
+      }
+
       for (final record in habit.records) {
         if (record.completed && map.containsKey(record.date)) {
           counts[map[record.date]!] += 1;

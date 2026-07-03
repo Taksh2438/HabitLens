@@ -3,6 +3,7 @@ import '../models/habit_type.dart';
 
 class AddHabitResult {
   final String name;
+  final bool hasGoal;
   final HabitType type;
   final double? targetValue;
 
@@ -10,6 +11,7 @@ class AddHabitResult {
     required this.name,
     required this.type,
     this.targetValue,
+    this.hasGoal = false,
   });
 }
 
@@ -26,8 +28,7 @@ class _AddHabitDialogState
   final nameController = TextEditingController();
   final goalController = TextEditingController();
 
-  HabitType selectedType =
-      HabitType.checkbox;
+  HabitType selectedType = HabitType.checkbox;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +61,19 @@ class _AddHabitDialogState
                 ),
                 DropdownMenuItem(
                   value: HabitType.number,
-                  child: Text("Number"),
+                  child: Text("Number Goal"),
+                ),
+                DropdownMenuItem(
+                  value: HabitType.counter,
+                  child: Text("Counter"),
+                ),
+                DropdownMenuItem(
+                  value: HabitType.timer,
+                  child: Text("Timer"),
+                ),
+                DropdownMenuItem(
+                  value: HabitType.rating,
+                  child: Text("Rating"),
                 ),
               ],
               onChanged: (value) {
@@ -72,8 +85,7 @@ class _AddHabitDialogState
               },
             ),
 
-            if (selectedType ==
-                HabitType.number) ...[
+            if (selectedType == HabitType.number) ...[
               const SizedBox(height: 16),
 
               TextField(
@@ -107,14 +119,12 @@ class _AddHabitDialogState
               AddHabitResult(
                 name: nameController.text.trim(),
                 type: selectedType,
-                targetValue:
-                    selectedType ==
-                            HabitType.number
-                        ? double.tryParse(
-                            goalController.text,
-                          )
-                        : null,
-              ),
+                targetValue: selectedType == HabitType.number
+                    ? double.tryParse(goalController.text)
+                    : null,
+
+                hasGoal: selectedType == HabitType.number,
+              )
             );
           },
           child: const Text("Add"),

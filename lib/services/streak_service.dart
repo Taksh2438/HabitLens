@@ -26,7 +26,19 @@ class StreakService {
       return record.completed;
     }
 
-    return (record.value ?? 0) >= (habit.targetValue ?? 0);
+    switch (habit.type) {
+      case HabitType.checkbox:
+        return record.completed;
+
+      case HabitType.number:
+        return (record.value ?? 0) >=
+            (habit.targetValue ?? 0);
+
+      case HabitType.counter:
+      case HabitType.rating:
+      case HabitType.timer:
+        return false;
+    }
   }
 
   static void toggleToday(Habit habit) {
@@ -57,8 +69,24 @@ class StreakService {
   ) {
     final today = todayKey();
 
-    final bool completed =
-        value >= (habit.targetValue ?? 0);
+    final bool completed;
+
+    switch (habit.type) {
+      case HabitType.checkbox:
+        completed = false;
+        break;
+
+      case HabitType.number:
+        completed =
+            value >= (habit.targetValue ?? 0);
+        break;
+
+      case HabitType.counter:
+      case HabitType.rating:
+      case HabitType.timer:
+        completed = false;
+        break;
+    }
 
     final index = habit.records.indexWhere(
       (record) => record.date == today,
