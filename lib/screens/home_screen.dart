@@ -339,10 +339,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                             : Icons.circle_outlined,
                                       )
                                     : null,
-                                title: Text(habit.name),
-                                subtitle: Text(
-                                  'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
+                                title: Text(
+                                  habit.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
+                                subtitle: switch (habit.type) {
+                                  HabitType.counter => Text(
+                                    habit.unit == null || habit.unit!.isEmpty
+                                        ? 'Recorder'
+                                        : 'Records: ${habit.unit}',
+                                  ),
+
+                                  HabitType.rating => const SizedBox.shrink(),
+
+                                  _ => Text(
+                                    'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
+                                  ),
+                                },
                                 trailing: switch (habit.type) {
                                   HabitType.checkbox => CheckboxHabitTile(
                                       value: StreakService.isCompletedToday(habit),
@@ -430,10 +444,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                             : Icons.circle_outlined,
                                       )
                                     : null,
-                                title: Text(habit.name),
-                                subtitle: Text(
-                                  'Streak: ${habit.currentStreak} • Total: ${habit.totalCompletions}',
+                                title: Text(
+                                  habit.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
+                                subtitle: switch (habit.type) {
+                                  HabitType.counter => Text(
+                                    habit.unit == null || habit.unit!.isEmpty
+                                        ? 'Recorder'
+                                        : 'Records: ${habit.unit}',
+                                  ),
+
+                                  HabitType.rating => const SizedBox.shrink(),
+
+                                  _ => Text(
+                                    'Streak: ${habit.currentStreak} Total: ${habit.totalCompletions}',
+                                  ),
+                                },
                                 trailing: Checkbox(
                                   value: StreakService.isCompletedToday(habit),
                                   onChanged: (_) {
