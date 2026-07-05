@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../models/habit.dart';
 import '../providers/habit_provider.dart';
 import '../services/streak_service.dart';
@@ -23,10 +22,17 @@ class CounterHabitTile extends StatelessWidget {
         ? 0.0
         : (todayRecords.first.value ?? 0);
 
+    String displayValue = current % 1 == 0
+        ? current.toInt().toString()
+        : current.toStringAsFixed(1);
+
+    if (habit.unit != null && habit.unit!.isNotEmpty) {
+      displayValue = '$displayValue ${habit.unit}';
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-
         IconButton(
           icon: const Icon(Icons.remove_circle_outline),
           onPressed: () async {
@@ -36,17 +42,13 @@ class CounterHabitTile extends StatelessWidget {
             ).decrementCounter(habit);
           },
         ),
-
         Text(
-          habit.hasGoal
-              ? '${current.toInt()}/${habit.targetValue?.toInt() ?? 0}'
-              : current.toInt().toString(),
+          displayValue,
           style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
           ),
         ),
-
         IconButton(
           icon: const Icon(Icons.add_circle_outline),
           onPressed: () async {

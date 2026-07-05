@@ -1,6 +1,7 @@
+import 'package:flutter/material.dart';
+
 import '../models/habit.dart';
 import '../models/habit_type.dart';
-import 'package:flutter/material.dart';
 import '../services/streak_service.dart';
 import '../services/storage_service.dart';
 
@@ -23,6 +24,8 @@ class HabitProvider extends ChangeNotifier {
     HabitType type,
     double? targetValue,
     bool hasGoal,
+    String? unit,
+    double incrementStep,
   ) async {
     _habits.add(
       Habit(
@@ -32,6 +35,8 @@ class HabitProvider extends ChangeNotifier {
         targetValue: targetValue,
         createdDate: DateTime.now(),
         hasGoal: hasGoal,
+        unit: unit,
+        incrementStep: incrementStep,
       ),
     );
 
@@ -39,16 +44,30 @@ class HabitProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> editHabit(String id, String newName) async {
+  Future<void> editHabit({
+    required String id,
+    required String name,
+    double? targetValue,
+    String? unit,
+    double? incrementStep,
+  }) async {
     final habit = _habits.firstWhere((h) => h.id == id);
 
-    habit.name = newName;
+    habit.name = name;
+    habit.targetValue = targetValue;
+    habit.unit = unit;
+
+    if (incrementStep != null) {
+      habit.incrementStep = incrementStep;
+    }
 
     await saveHabits();
     notifyListeners();
   }
 
-  Future<void> deleteHabits(List<String> ids) async {
+  Future<void> deleteHabits(
+    List<String> ids,
+  ) async {
     _habits.removeWhere(
       (habit) => ids.contains(habit.id),
     );
@@ -57,7 +76,9 @@ class HabitProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleHabit(Habit habit) async {
+  Future<void> toggleHabit(
+    Habit habit,
+  ) async {
     StreakService.toggleToday(habit);
 
     await saveHabits();
@@ -77,7 +98,9 @@ class HabitProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> incrementCounter(Habit habit) async {
+  Future<void> incrementCounter(
+    Habit habit,
+  ) async {
     final today = StreakService.todayKey();
 
     final record = habit.records.where(
@@ -86,15 +109,17 @@ class HabitProvider extends ChangeNotifier {
 
     final current = record.isEmpty
         ? 0.0
-        : (record.first.value ?? 0);
+        : (record.first.value ?? 0.0);
 
     await setHabitValue(
       habit,
-      current + 1,
+      current + habit.incrementStep,
     );
   }
 
-  Future<void> decrementCounter(Habit habit) async {
+  Future<void> decrementCounter(
+    Habit habit,
+  ) async {
     final today = StreakService.todayKey();
 
     final record = habit.records.where(
@@ -103,13 +128,15 @@ class HabitProvider extends ChangeNotifier {
 
     final current = record.isEmpty
         ? 0.0
-        : (record.first.value ?? 0);
+        : (record.first.value ?? 0.0);
 
-    if (current > 0) {
-      await setHabitValue(
-        habit,
-        current - 1,
-      );
-    }
+    final newValue =
+        (current - habit.incrementStep)
+            .clamp(0.0, double.infinity);
+
+    await setHabitValue(
+      habit,
+      newValue,
+    );
   }
 }

@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../services/streak_service.dart';
 import '../dialogs/add_habit_dialog.dart';
 import '../providers/habit_provider.dart';
-import '../widgets/timer_habit_tile.dart';
 import '../dialogs/edit_habit_dialog.dart';
 import '../widgets/number_habit_tile.dart';
 import '../widgets/rating_habit_tile.dart';
@@ -44,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
       result.type,
       result.targetValue,
       result.hasGoal,
+      result.unit,
+      result.incrementStep,
     );
   }
 
@@ -108,8 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> editSelectedHabit() async {
-    final habitProvider =
-        Provider.of<HabitProvider>(
+    final habitProvider = Provider.of<HabitProvider>(
       context,
       listen: false,
     );
@@ -118,8 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
       (h) => h.id == selectedHabits.first,
     );
 
-    final result =
-        await showDialog<EditHabitResult>(
+    final result = await showDialog<EditHabitResult>(
       context: context,
       builder: (_) => EditHabitDialog(
         habit: habit,
@@ -128,13 +127,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result == null) return;
 
-    habit.name = result.name;
-
-    if (habit.type == HabitType.number) {
-      habit.targetValue = result.targetValue;
-    }
-
-    await habitProvider.saveHabits();
+    await habitProvider.editHabit(
+      id: habit.id,
+      name: result.name,
+      targetValue: result.targetValue,
+      unit: result.unit,
+      incrementStep: result.incrementStep,
+    );
 
     selectedHabits.clear();
 
@@ -151,7 +150,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final habits = habitProvider.habits;
 
     final completedToday = habits.where((h) {
-      if (h.type == HabitType.counter) {
+      if (h.type == HabitType.counter ||
+          h.type == HabitType.rating) {
         return false;
       }
 
@@ -159,7 +159,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }).length;
 
     final goalHabits = habits.where(
-      (h) => h.type != HabitType.counter,
+      (h) =>
+          h.type != HabitType.counter &&
+          h.type != HabitType.rating,
     ).toList();
 
     final progress =
@@ -292,7 +294,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Builder(
                     builder: (context) {
                       final incompleteHabits = habits.where((h) {
-                        if (h.type == HabitType.number) {
+                        if (h.type == HabitType.number ||
+                            h.type == HabitType.counter ||
+                            h.type == HabitType.rating) {
                           return true;
                         }
 
@@ -300,7 +304,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       }).toList();
 
                       final completedHabits = habits.where((h) {
-                        if (h.type == HabitType.number) {
+                        if (h.type == HabitType.number ||
+                            h.type == HabitType.counter ||
+                            h.type == HabitType.rating) {
                           return false;
                         }
 
@@ -353,8 +359,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   HabitType.counter => CounterHabitTile(
                                     habit: habit,
                                   ),
-
-                                  HabitType.timer => const TimerHabitTile(),
 
                                   HabitType.rating => RatingHabitTile(
                                     habit: habit,

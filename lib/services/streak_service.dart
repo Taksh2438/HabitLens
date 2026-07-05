@@ -35,9 +35,10 @@ class StreakService {
             (habit.targetValue ?? 0);
 
       case HabitType.counter:
-      case HabitType.rating:
-      case HabitType.timer:
         return false;
+
+      case HabitType.rating:
+        return (record.value ?? 0) > 0;
     }
   }
 
@@ -83,7 +84,6 @@ class StreakService {
 
       case HabitType.counter:
       case HabitType.rating:
-      case HabitType.timer:
         completed = false;
         break;
     }

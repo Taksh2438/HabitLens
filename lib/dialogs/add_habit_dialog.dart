@@ -3,15 +3,19 @@ import '../models/habit_type.dart';
 
 class AddHabitResult {
   final String name;
+  final String? unit;
   final bool hasGoal;
   final HabitType type;
   final double? targetValue;
+  final double incrementStep;
 
   AddHabitResult({
+    this.unit,
+    this.targetValue,
     required this.name,
     required this.type,
-    this.targetValue,
     this.hasGoal = false,
+    this.incrementStep = 1,
   });
 }
 
@@ -27,6 +31,9 @@ class _AddHabitDialogState
     extends State<AddHabitDialog> {
   final nameController = TextEditingController();
   final goalController = TextEditingController();
+  final unitController = TextEditingController();
+  final incrementController =
+      TextEditingController(text: '1');
 
   HabitType selectedType = HabitType.checkbox;
 
@@ -68,10 +75,6 @@ class _AddHabitDialogState
                   child: Text("Counter"),
                 ),
                 DropdownMenuItem(
-                  value: HabitType.timer,
-                  child: Text("Timer"),
-                ),
-                DropdownMenuItem(
                   value: HabitType.rating,
                   child: Text("Rating"),
                 ),
@@ -100,6 +103,57 @@ class _AddHabitDialogState
                   border: OutlineInputBorder(),
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: unitController,
+                decoration: const InputDecoration(
+                  labelText: 'Unit (optional)',
+                  hintText: 'pages, glasses, km...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: incrementController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Increment step',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+
+            if (selectedType == HabitType.counter) ...[
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: unitController,
+                decoration: const InputDecoration(
+                  labelText: 'Unit (optional)',
+                  hintText: 'steps, pages, glasses...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: incrementController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Increment step',
+                  hintText: 'Example: 1, 5, 0.5, 500',
+                  border: OutlineInputBorder(),
+                ),
+              ),
             ],
           ],
         ),
@@ -122,8 +176,13 @@ class _AddHabitDialogState
                 targetValue: selectedType == HabitType.number
                     ? double.tryParse(goalController.text)
                     : null,
-
                 hasGoal: selectedType == HabitType.number,
+                unit: unitController.text.trim().isEmpty
+                    ? null
+                    : unitController.text.trim(),
+
+                incrementStep:
+                    double.tryParse(incrementController.text) ?? 1,
               )
             );
           },

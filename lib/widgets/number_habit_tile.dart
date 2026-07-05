@@ -23,10 +23,25 @@ class NumberHabitTile extends StatelessWidget {
         ? 0.0
         : (todayRecords.first.value ?? 0.0);
 
+    String currentText = current % 1 == 0
+        ? current.toInt().toString()
+        : current.toStringAsFixed(1);
+
+    String targetText = habit.targetValue == null
+        ? ''
+        : (habit.targetValue! % 1 == 0
+            ? habit.targetValue!.toInt().toString()
+            : habit.targetValue!.toStringAsFixed(1));
+
+    String display = '$currentText/$targetText';
+
+    if (habit.unit != null && habit.unit!.isNotEmpty) {
+      display += ' ${habit.unit}';
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-
         IconButton(
           icon: const Icon(Icons.remove),
           onPressed: () async {
@@ -36,16 +51,21 @@ class NumberHabitTile extends StatelessWidget {
                 listen: false,
               ).setHabitValue(
                 habit,
-                current - 1,
+                (current - habit.incrementStep).clamp(
+                  0,
+                  double.infinity,
+                ),
               );
             }
           },
         ),
-
         Text(
-          '${current.toInt()}/${habit.targetValue?.toInt() ?? 0}',
+          display,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-
         IconButton(
           icon: const Icon(Icons.add),
           onPressed: () async {
@@ -54,7 +74,7 @@ class NumberHabitTile extends StatelessWidget {
               listen: false,
             ).setHabitValue(
               habit,
-              current + 1,
+              current + habit.incrementStep,
             );
           },
         ),
