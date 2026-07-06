@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+
 import '../models/app_stats.dart';
 import '../providers/habit_provider.dart';
 import '../services/stats_service.dart';
@@ -18,6 +19,9 @@ class StatsScreen extends StatelessWidget {
     final weeklyData =
         StatsService.last7Days(habitProvider.habits);
 
+    final topHabits =
+        StatsService.topHabits(habitProvider.habits);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistics'),
@@ -25,63 +29,217 @@ class StatsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.list),
-              title: const Text('Total Habits'),
-              trailing: Text(
-                stats.totalHabits.toString(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  const Text(
+                    'Completion Rate',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Center(
+                    child: Text(
+                      '${stats.completionRate.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  LinearProgressIndicator(
+                    value: stats.completionRate / 100,
+                    minHeight: 10,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ],
               ),
             ),
           ),
 
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.check_circle),
-              title: const Text('Total Completions'),
-              trailing: Text(
-                stats.totalCompletions.toString(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+
+              Expanded(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                    ),
+                    child: Column(
+                      children: [
+
+                        const Icon(
+                          Icons.today,
+                          size: 32,
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        const Text(
+                          'Today',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        Text(
+                          '${stats.completedToday}/${stats.activeHabits}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.local_fire_department),
-              title: const Text('Longest Streak'),
-              trailing: Text(
-                stats.longestStreak.toString(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                    ),
+                    child: Column(
+                      children: [
+
+                        const Icon(
+                          Icons.local_fire_department,
+                          size: 32,
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        const Text(
+                          'Best Streak',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        Text(
+                          '${stats.longestStreak}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
 
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.percent),
-              title: const Text('Completion Rate'),
-              trailing: Text(
-                '${stats.completionRate.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+
+              Expanded(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                    ),
+                    child: Column(
+                      children: [
+
+                        const Icon(
+                          Icons.list_alt,
+                          size: 32,
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        const Text(
+                          'Habits',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        Text(
+                          stats.activeHabits.toString(),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                    ),
+                    child: Column(
+                      children: [
+
+                        const Icon(
+                          Icons.check_circle,
+                          size: 32,
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        const Text(
+                          'Completed',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        Text(
+                          stats.totalCompletions.toString(),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           const Text(
             'Last 7 Days',
@@ -125,7 +283,9 @@ class StatsScreen extends StatelessWidget {
 
                             return Text(
                               labels[value.toInt()],
-                              style: const TextStyle(fontSize: 12),
+                              style: const TextStyle(
+                                fontSize: 12,
+                              ),
                             );
                           },
                         ),
@@ -146,6 +306,54 @@ class StatsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          const Text(
+            '🏆 Top Habits',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          Card(
+            child: Column(
+              children: List.generate(
+                topHabits.length,
+                (index) {
+                  final habit = topHabits[index];
+
+                  final medal = switch (index) {
+                    0 => '🥇',
+                    1 => '🥈',
+                    _ => '🥉',
+                  };
+
+                  return ListTile(
+                    leading: Text(
+                      '$medal ${habit.icon}',
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                    title: Text(
+                      habit.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(
+                      '${habit.totalCompletions}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),

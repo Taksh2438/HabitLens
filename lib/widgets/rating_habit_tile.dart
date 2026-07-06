@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../models/habit.dart';
 import '../providers/habit_provider.dart';
 import '../services/streak_service.dart';
@@ -27,7 +26,11 @@ class RatingHabitTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: List.generate(
         5,
-        (index) => IconButton(
+        (index) => 
+        SizedBox(
+            width: 32,
+            height: 32,
+            child: IconButton(
           constraints: const BoxConstraints(
             minWidth: 28,
             minHeight: 28,
@@ -41,7 +44,7 @@ class RatingHabitTile extends StatelessWidget {
             index < current
                 ? Icons.star
                 : Icons.star_border,
-            size: 22,
+            size: 20,
           ),
           onPressed: () async {
             await Provider.of<HabitProvider>(
@@ -52,6 +55,7 @@ class RatingHabitTile extends StatelessWidget {
               (index + 1).toDouble(),
             );
           },
+        ),
         ),
       ),
     );

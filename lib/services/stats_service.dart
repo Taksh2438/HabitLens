@@ -1,13 +1,16 @@
 import 'dart:collection';
-import '../models/habit.dart';
 import '../models/app_stats.dart';
+import '../models/habit.dart';
 import '../models/habit_type.dart';
+import 'streak_service.dart';
 
 class StatsService {
   static AppStats calculate(List<Habit> habits) {
     if (habits.isEmpty) {
       return AppStats(
         totalHabits: 0,
+        activeHabits: 0,
+        completedToday: 0,
         totalCompletions: 0,
         longestStreak: 0,
         completionRate: 0.0,
@@ -16,29 +19,46 @@ class StatsService {
 
     int completions = 0;
     int longest = 0;
-    int totalRecords = 0;
+    int activeHabits = 0;
+    int completedToday = 0;
+    int totalPossible = 0;
+
+    final today = DateTime.now();
 
     for (final habit in habits) {
-
-      if (habit.type == HabitType.counter) {
+      if (habit.isArchived) {
         continue;
       }
 
-      completions += habit.totalCompletions;
+      if (habit.type != HabitType.counter &&
+          habit.type != HabitType.rating) {
+        activeHabits++;
 
-      if (habit.longestStreak > longest) {
-        longest = habit.longestStreak;
+        final daysSinceCreated =
+            today.difference(habit.createdDate).inDays + 1;
+
+        totalPossible += daysSinceCreated;
+
+        completions += habit.totalCompletions;
+
+        if (StreakService.isCompletedToday(habit)) {
+          completedToday++;
+        }
+
+        if (habit.longestStreak > longest) {
+          longest = habit.longestStreak;
+        }
       }
-
-      totalRecords += habit.records.length;
     }
 
-    final double rate = totalRecords == 0
+    final double rate = totalPossible == 0
         ? 0.0
-        : (completions / totalRecords) * 100.0;
+        : (completions / totalPossible) * 100.0;
 
     return AppStats(
       totalHabits: habits.length,
+      activeHabits: activeHabits,
+      completedToday: completedToday,
       totalCompletions: completions,
       longestStreak: longest,
       completionRate: rate,
@@ -67,8 +87,9 @@ class StatsService {
     }
 
     for (final habit in habits) {
-
-      if (habit.type == HabitType.counter) {
+      if (habit.isArchived ||
+          habit.type == HabitType.counter ||
+          habit.type == HabitType.rating) {
         continue;
       }
 
@@ -80,5 +101,45 @@ class StatsService {
     }
 
     return counts;
+  }
+
+  static List<Habit> topHabits(List<Habit> habits) {
+    final sorted = habits
+        .where(
+          (habit) =>
+              !habit.isArchived &&
+              habit.type != HabitType.counter &&
+              habit.type != HabitType.rating,
+        )
+        .toList();
+
+    sorted.sort(
+      (a, b) =>
+          b.totalCompletions.compareTo(a.totalCompletions),
+    );
+
+    return sorted.take(3).toList();
+  }
+
+  static Habit? mostConsistentHabit(List<Habit> habits) {
+    final eligible = habits
+        .where(
+          (habit) =>
+              !habit.isArchived &&
+              habit.type != HabitType.counter &&
+              habit.type != HabitType.rating,
+        )
+        .toList();
+
+    if (eligible.isEmpty) {
+      return null;
+    }
+
+    eligible.sort(
+      (a, b) =>
+          b.totalCompletions.compareTo(a.totalCompletions),
+    );
+
+    return eligible.first;
   }
 }
