@@ -8,6 +8,7 @@ class Habit {
   String? unit;
   HabitType type;
   bool isArchived;
+  String icon;
   int currentStreak;
   int longestStreak;
   double? targetValue;
@@ -17,25 +18,27 @@ class Habit {
   List<HabitRecord> records;
 
   Habit({
-    this.unit,
-    this.targetValue,
     required this.id,
     required this.name,
     this.hasGoal = false,
+    this.unit,
+    this.icon = "✅",
+    this.type = HabitType.checkbox,
+    this.isArchived = false,
     this.currentStreak = 0,
     this.longestStreak = 0,
+    this.targetValue,
     this.incrementStep = 1,
-    this.isArchived = false,
     required this.createdDate,
     this.totalCompletions = 0,
     List<HabitRecord>? records,
-    this.type = HabitType.checkbox,
   }) : records = records ?? [];
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
+      'icon': icon,
       'unit': unit,
       'type': type.name,
       'hasGoal': hasGoal,
@@ -53,8 +56,9 @@ class Habit {
   factory Habit.fromJson(Map<String, dynamic> json) {
     return Habit(
       id: json['id'],
-      unit: json['unit'],
       name: json['name'],
+      icon: json['icon'] ?? "✅",
+      unit: json['unit'],
       hasGoal: json['hasGoal'] ?? false,
       type: HabitType.values.firstWhere(
         (e) => e.name == json['type'],

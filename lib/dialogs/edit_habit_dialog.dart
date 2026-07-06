@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import '../models/habit.dart';
 import '../models/habit_type.dart';
+import '../dialogs/icon_picker_dialog.dart';
 
 class EditHabitResult {
   final String name;
+  final String iconName;
   final double? targetValue;
   final String? unit;
   final double? incrementStep;
 
   EditHabitResult({
     required this.name,
+    required this.iconName,
     this.targetValue,
     this.unit,
     this.incrementStep,
@@ -35,10 +38,12 @@ class _EditHabitDialogState
   late final TextEditingController goalController;
   late final TextEditingController unitController;
   late final TextEditingController incrementController;
+  late String selectedIcon;
 
   @override
   void initState() {
     super.initState();
+    selectedIcon = widget.habit.icon;
 
     nameController = TextEditingController(
       text: widget.habit.name,
@@ -73,6 +78,45 @@ class _EditHabitDialogState
               ),
             ),
 
+            const SizedBox(height: 16),
+
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () async {
+                final result = await showDialog<String>(
+                  context: context,
+                  builder: (_) => const IconPickerDialog(),
+                );
+
+                if (result != null) {
+                  setState(() {
+                    selectedIcon = result;
+                  });
+                }
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    child: Text(
+                      selectedIcon,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Change Icon",
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             if (widget.habit.type == HabitType.number ||
                 widget.habit.type == HabitType.counter) ...[
               if (widget.habit.type == HabitType.number) ...[
@@ -88,6 +132,8 @@ class _EditHabitDialogState
                     labelText: 'Daily Goal',
                   ),
                 ),
+
+                const SizedBox(height: 16),
               ],
 
               const SizedBox(height: 16),
@@ -130,6 +176,7 @@ class _EditHabitDialogState
               context,
               EditHabitResult(
                 name: nameController.text.trim(),
+                iconName: selectedIcon,
                 targetValue: widget.habit.type == HabitType.number
                     ? double.tryParse(goalController.text)
                     : null,

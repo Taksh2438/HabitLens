@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/habit_type.dart';
+import '../dialogs/icon_picker_dialog.dart';
 
 class AddHabitResult {
   final String name;
+  final String iconName;
   final String? unit;
   final bool hasGoal;
   final HabitType type;
@@ -13,6 +15,7 @@ class AddHabitResult {
     this.unit,
     this.targetValue,
     required this.name,
+    required this.iconName,
     required this.type,
     this.hasGoal = false,
     this.incrementStep = 1,
@@ -36,6 +39,7 @@ class _AddHabitDialogState
       TextEditingController(text: '1');
 
   HabitType selectedType = HabitType.checkbox;
+  String selectedIcon = "✅";
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,39 @@ class _AddHabitDialogState
               controller: nameController,
               decoration: const InputDecoration(
                 hintText: "Habit name",
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            GestureDetector(
+              onTap: () async {
+                final result = await showDialog<String>(
+                  context: context,
+                  builder: (_) => const IconPickerDialog(),
+                );
+
+                if (result != null) {
+                  setState(() {
+                    selectedIcon = result;
+                  });
+                }
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    child: Text(
+                      selectedIcon,
+                      style: const TextStyle(fontSize: 26),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    "Choose Icon",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
               ),
             ),
 
@@ -172,6 +209,7 @@ class _AddHabitDialogState
               context,
               AddHabitResult(
                 name: nameController.text.trim(),
+                iconName: selectedIcon,
                 type: selectedType,
                 targetValue: selectedType == HabitType.number
                     ? double.tryParse(goalController.text)

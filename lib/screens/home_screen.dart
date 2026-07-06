@@ -40,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       listen: false,
     ).addHabit(
       result.name,
+      result.iconName,
       result.type,
       result.targetValue,
       result.hasGoal,
@@ -130,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await habitProvider.editHabit(
       id: habit.id,
       name: result.name,
+      icon: result.iconName,
       targetValue: result.targetValue,
       unit: result.unit,
       incrementStep: result.incrementStep,
@@ -338,12 +340,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ? Icons.check_circle
                                             : Icons.circle_outlined,
                                       )
-                                    : null,
+                                    : CircleAvatar(
+                                        radius: 20,
+                                        child: Text(
+                                          habit.icon,
+                                          style: const TextStyle(fontSize: 22),
+                                        ),
+                                      ),
                                 title: Text(
                                   habit.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                isThreeLine: false,
+                                dense: true,
                                 subtitle: switch (habit.type) {
                                   HabitType.counter => Text(
                                     habit.unit == null || habit.unit!.isEmpty
@@ -443,12 +453,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ? Icons.check_circle
                                             : Icons.circle_outlined,
                                       )
-                                    : null,
+                                    : CircleAvatar(
+                                        radius: 20,
+                                        child: Text(
+                                          habit.icon,
+                                          style: const TextStyle(fontSize: 22),
+                                        ),
+                                      ),
                                 title: Text(
                                   habit.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                isThreeLine: false,
+                                dense: true,
                                 subtitle: switch (habit.type) {
                                   HabitType.counter => Text(
                                     habit.unit == null || habit.unit!.isEmpty

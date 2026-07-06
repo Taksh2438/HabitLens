@@ -21,6 +21,7 @@ class HabitProvider extends ChangeNotifier {
 
   Future<void> addHabit(
     String name,
+    String icon,
     HabitType type,
     double? targetValue,
     bool hasGoal,
@@ -31,6 +32,7 @@ class HabitProvider extends ChangeNotifier {
       Habit(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: name,
+        icon: icon,
         type: type,
         targetValue: targetValue,
         createdDate: DateTime.now(),
@@ -47,6 +49,7 @@ class HabitProvider extends ChangeNotifier {
   Future<void> editHabit({
     required String id,
     required String name,
+    required String icon,
     double? targetValue,
     String? unit,
     double? incrementStep,
@@ -54,6 +57,7 @@ class HabitProvider extends ChangeNotifier {
     final habit = _habits.firstWhere((h) => h.id == id);
 
     habit.name = name;
+    habit.icon = icon;
     habit.targetValue = targetValue;
     habit.unit = unit;
 
