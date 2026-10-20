@@ -28,25 +28,42 @@ class HabitProvider extends ChangeNotifier {
     String? unit,
     double incrementStep,
   ) async {
-    final cleanName = name.trim();
-    if (cleanName.isEmpty) return;
+    final cleanedName = name.trim();
+    if (cleanedName.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Habit name cannot be empty.');
+    }
+    if (targetValue != null &&
+        (!targetValue.isFinite || targetValue <= 0)) {
+      throw ArgumentError.value(
+        targetValue,
+        'targetValue',
+        'Goal must be greater than zero.',
+      );
+    }
+    if (!incrementStep.isFinite || incrementStep <= 0) {
+      throw ArgumentError.value(
+        incrementStep,
+        'incrementStep',
+        'Increment step must be greater than zero.',
+      );
+    }
 
-    var idValue = DateTime.now().microsecondsSinceEpoch;
-
-    while (_habits.any((habit) => habit.id == idValue.toString())) {
-      idValue++;
+    final now = DateTime.now();
+    var id = now.microsecondsSinceEpoch.toString();
+    while (_habits.any((habit) => habit.id == id)) {
+      id = '${now.microsecondsSinceEpoch}-${_habits.length}-${id.hashCode}';
     }
 
     _habits.add(
       Habit(
-        id: idValue.toString(),
-        name: cleanName,
+        id: id,
+        name: cleanedName,
         icon: icon,
         type: type,
         targetValue: targetValue,
-        createdDate: DateTime.now(),
+        createdDate: now,
         hasGoal: hasGoal && targetValue != null,
-        unit: unit,
+        unit: unit?.trim().isEmpty == true ? null : unit?.trim(),
         incrementStep: incrementStep,
       ),
     );
@@ -63,42 +80,66 @@ class HabitProvider extends ChangeNotifier {
     String? unit,
     double? incrementStep,
   }) async {
-    final cleanName = name.trim();
-    if (cleanName.isEmpty) return;
+    final matches = _habits.where((habit) => habit.id == id);
+    if (matches.isEmpty) return;
 
-    final index = _habits.indexWhere((habit) => habit.id == id);
-    if (index == -1) return;
+    final cleanedName = name.trim();
+    if (cleanedName.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Habit name cannot be empty.');
+    }
+    if (targetValue != null &&
+        (!targetValue.isFinite || targetValue <= 0)) {
+      throw ArgumentError.value(
+        targetValue,
+        'targetValue',
+        'Goal must be greater than zero.',
+      );
+    }
+    if (incrementStep != null &&
+        (!incrementStep.isFinite || incrementStep <= 0)) {
+      throw ArgumentError.value(
+        incrementStep,
+        'incrementStep',
+        'Increment step must be greater than zero.',
+      );
+    }
 
-    final habit = _habits[index];
-
-    habit.name = cleanName;
+    final habit = matches.first;
+    habit.name = cleanedName;
     habit.icon = icon;
     habit.targetValue = targetValue;
     habit.hasGoal = targetValue != null;
-    habit.unit = unit;
+    habit.unit = unit?.trim().isEmpty == true ? null : unit?.trim();
 
-    if (incrementStep != null && incrementStep > 0) {
+    if (incrementStep != null) {
       habit.incrementStep = incrementStep;
     }
 
+    StreakService.recalculate(habit);
     await saveHabits();
     notifyListeners();
   }
 
   Future<void> deleteHabits(List<String> ids) async {
     _habits.removeWhere((habit) => ids.contains(habit.id));
-
     await saveHabits();
     notifyListeners();
   }
 
   Future<void> toggleHabit(Habit habit) async {
+    if (!_habits.any((item) => item.id == habit.id)) return;
+
     StreakService.toggleToday(habit);
     await saveHabits();
     notifyListeners();
   }
 
   Future<void> setHabitValue(Habit habit, double value) async {
+    if (!value.isFinite) {
+      throw ArgumentError.value(value, 'value', 'Value must be finite.');
+    }
+    if (!_habits.any((item) => item.id == habit.id)) return;
+
     StreakService.setTodayValue(habit, value);
     await saveHabits();
     notifyListeners();
@@ -106,36 +147,18 @@ class HabitProvider extends ChangeNotifier {
 
   Future<void> incrementCounter(Habit habit) async {
     final today = StreakService.todayKey();
+    final records = habit.records.where((record) => record.date == today);
+    final current = records.isEmpty ? 0.0 : (records.last.value ?? 0.0);
 
-    final records = habit.records.where(
-      (record) => record.date == today,
-    );
-
-    final current = records.isEmpty
-        ? 0.0
-        : (records.first.value ?? 0.0);
-
-    await setHabitValue(
-      habit,
-      current + habit.incrementStep,
-    );
+    await setHabitValue(habit, current + habit.incrementStep);
   }
 
   Future<void> decrementCounter(Habit habit) async {
     final today = StreakService.todayKey();
+    final records = habit.records.where((record) => record.date == today);
+    final current = records.isEmpty ? 0.0 : (records.last.value ?? 0.0);
+    final next = (current - habit.incrementStep).clamp(0.0, double.infinity);
 
-    final records = habit.records.where(
-      (record) => record.date == today,
-    );
-
-    final current = records.isEmpty
-        ? 0.0
-        : (records.first.value ?? 0.0);
-
-    final newValue = (current - habit.incrementStep)
-        .clamp(0.0, double.infinity)
-        .toDouble();
-
-    await setHabitValue(habit, newValue);
+    await setHabitValue(habit, next);
   }
 }

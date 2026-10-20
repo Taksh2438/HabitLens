@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/habit_type.dart';
-import '../dialogs/icon_picker_dialog.dart';
+import 'icon_picker_dialog.dart';
 
 class AddHabitResult {
   final String name;
@@ -12,7 +12,7 @@ class AddHabitResult {
   final double? targetValue;
   final double incrementStep;
 
-  AddHabitResult({
+  const AddHabitResult({
     required this.name,
     required this.iconName,
     required this.type,
@@ -48,34 +48,57 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
     super.dispose();
   }
 
+  Future<void> chooseIcon() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => const IconPickerDialog(),
+    );
+
+    if (result != null && mounted) {
+      setState(() => selectedIcon = result);
+    }
+  }
+
+  void showError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void saveHabit() {
     final name = nameController.text.trim();
-    if (name.isEmpty) return;
 
-    final needsGoal = selectedType == HabitType.number ||
+    if (name.isEmpty) {
+      showError('Enter a habit name.');
+      return;
+    }
+
+    final usesGoal = selectedType == HabitType.number ||
         selectedType == HabitType.counter;
+    final rawGoal = goalController.text.trim();
+    double? target;
 
-    final target = needsGoal
-        ? double.tryParse(goalController.text.trim())
-        : null;
-
-    final increment = double.tryParse(incrementController.text.trim()) ?? 1;
-
-    if (needsGoal &&
-        goalController.text.trim().isNotEmpty &&
-        (target == null || target <= 0)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid positive daily goal.')),
-      );
+    if (selectedType == HabitType.number && rawGoal.isEmpty) {
+      showError('Enter a daily goal for a number habit.');
       return;
     }
 
-    if (increment <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Increment step must be greater than zero.')),
-      );
+    if (usesGoal && rawGoal.isNotEmpty) {
+      target = double.tryParse(rawGoal);
+      if (target == null || !target.isFinite || target <= 0) {
+        showError('Goal must be a number greater than zero.');
+        return;
+      }
+    }
+
+    final increment = double.tryParse(incrementController.text.trim());
+    if (usesGoal &&
+        (increment == null || !increment.isFinite || increment <= 0)) {
+      showError('Increment step must be greater than zero.');
       return;
     }
+
+    final unit = unitController.text.trim();
 
     Navigator.pop(
       context,
@@ -85,18 +108,15 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
         type: selectedType,
         targetValue: target,
         hasGoal: target != null,
-        unit: unitController.text.trim().isEmpty
-            ? null
-            : unitController.text.trim(),
-        incrementStep: increment,
+        unit: usesGoal && unit.isNotEmpty ? unit : null,
+        incrementStep: usesGoal ? increment! : 1,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final usesGoalAndCounterFields =
-        selectedType == HabitType.number ||
+    final usesGoal = selectedType == HabitType.number ||
         selectedType == HabitType.counter;
 
     return AlertDialog(
@@ -117,16 +137,7 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
             const SizedBox(height: 16),
             InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: () async {
-                final result = await showDialog<String>(
-                  context: context,
-                  builder: (_) => const IconPickerDialog(),
-                );
-
-                if (result != null && mounted) {
-                  setState(() => selectedIcon = result);
-                }
-              },
+              onTap: chooseIcon,
               child: Row(
                 children: [
                   CircleAvatar(
@@ -174,26 +185,26 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
                 }
               },
             ),
-            if (usesGoalAndCounterFields) ...[
+            if (usesGoal) ...[
               const SizedBox(height: 16),
               TextField(
                 controller: goalController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: selectedType == HabitType.counter
-                      ? 'Daily Goal (optional)'
-                      : 'Daily Goal',
+                      ? 'Daily goal (optional)'
+                      : 'Daily goal',
                   hintText: selectedType == HabitType.counter
-                      ? 'e.g. 5 pages'
-                      : 'Enter target',
+                      ? 'Leave blank for no goal'
+                      : 'e.g. 5',
                   border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: unitController,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   labelText: 'Unit (optional)',
                   hintText: 'pages, glasses, km...',
@@ -203,9 +214,8 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
               const SizedBox(height: 16),
               TextField(
                 controller: incrementController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
                   labelText: 'Increment step',
                   hintText: 'e.g. 1, 5, 0.5',
