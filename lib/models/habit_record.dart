@@ -10,22 +10,26 @@ class HabitRecord {
   });
 
   factory HabitRecord.fromJson(Map<String, dynamic> json) {
-    final rawValue = json['value'];
+    final rawDate = json['date']?.toString() ?? '';
+    final parsedValue = _parseValue(json['value']);
 
     return HabitRecord(
-      date: json['date']?.toString() ?? '',
+      date: rawDate,
       completed: json['completed'] == true,
-      value: rawValue is num
-          ? rawValue.toDouble()
-          : double.tryParse(rawValue?.toString() ?? ''),
+      value: parsedValue,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'date': date,
-      'completed': completed,
-      'value': value,
-    };
+  static double? _parseValue(dynamic raw) {
+    if (raw is! num && raw is! String) return null;
+
+    final parsed = double.tryParse(raw.toString());
+    return parsed != null && parsed.isFinite ? parsed : null;
   }
+
+  Map<String, dynamic> toJson() => {
+        'date': date,
+        'completed': completed,
+        'value': value,
+      };
 }
