@@ -37,8 +37,6 @@ class HabitProvider extends ChangeNotifier {
       idValue++;
     }
 
-    final now = DateTime.now();
-
     _habits.add(
       Habit(
         id: idValue.toString(),
@@ -46,8 +44,8 @@ class HabitProvider extends ChangeNotifier {
         icon: icon,
         type: type,
         targetValue: targetValue,
-        createdDate: now,
-        hasGoal: hasGoal,
+        createdDate: DateTime.now(),
+        hasGoal: hasGoal && targetValue != null,
         unit: unit,
         incrementStep: incrementStep,
       ),
@@ -76,6 +74,7 @@ class HabitProvider extends ChangeNotifier {
     habit.name = cleanName;
     habit.icon = icon;
     habit.targetValue = targetValue;
+    habit.hasGoal = targetValue != null;
     habit.unit = unit;
 
     if (incrementStep != null && incrementStep > 0) {
@@ -95,14 +94,12 @@ class HabitProvider extends ChangeNotifier {
 
   Future<void> toggleHabit(Habit habit) async {
     StreakService.toggleToday(habit);
-
     await saveHabits();
     notifyListeners();
   }
 
   Future<void> setHabitValue(Habit habit, double value) async {
     StreakService.setTodayValue(habit, value);
-
     await saveHabits();
     notifyListeners();
   }

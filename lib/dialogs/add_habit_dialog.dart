@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/habit_type.dart';
 import '../dialogs/icon_picker_dialog.dart';
 
@@ -12,12 +13,12 @@ class AddHabitResult {
   final double incrementStep;
 
   AddHabitResult({
-    this.unit,
-    this.targetValue,
     required this.name,
     required this.iconName,
     required this.type,
+    this.unit,
     this.hasGoal = false,
+    this.targetValue,
     this.incrementStep = 1,
   });
 }
@@ -26,50 +27,104 @@ class AddHabitDialog extends StatefulWidget {
   const AddHabitDialog({super.key});
 
   @override
-  State<AddHabitDialog> createState() =>
-      _AddHabitDialogState();
+  State<AddHabitDialog> createState() => _AddHabitDialogState();
 }
 
-class _AddHabitDialogState
-    extends State<AddHabitDialog> {
+class _AddHabitDialogState extends State<AddHabitDialog> {
   final nameController = TextEditingController();
   final goalController = TextEditingController();
   final unitController = TextEditingController();
-  final incrementController =
-      TextEditingController(text: '1');
+  final incrementController = TextEditingController(text: '1');
 
   HabitType selectedType = HabitType.checkbox;
-  String selectedIcon = "✅";
+  String selectedIcon = '✅';
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    goalController.dispose();
+    unitController.dispose();
+    incrementController.dispose();
+    super.dispose();
+  }
+
+  void saveHabit() {
+    final name = nameController.text.trim();
+    if (name.isEmpty) return;
+
+    final needsGoal = selectedType == HabitType.number ||
+        selectedType == HabitType.counter;
+
+    final target = needsGoal
+        ? double.tryParse(goalController.text.trim())
+        : null;
+
+    final increment = double.tryParse(incrementController.text.trim()) ?? 1;
+
+    if (needsGoal &&
+        goalController.text.trim().isNotEmpty &&
+        (target == null || target <= 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid positive daily goal.')),
+      );
+      return;
+    }
+
+    if (increment <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Increment step must be greater than zero.')),
+      );
+      return;
+    }
+
+    Navigator.pop(
+      context,
+      AddHabitResult(
+        name: name,
+        iconName: selectedIcon,
+        type: selectedType,
+        targetValue: target,
+        hasGoal: target != null,
+        unit: unitController.text.trim().isEmpty
+            ? null
+            : unitController.text.trim(),
+        incrementStep: increment,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final usesGoalAndCounterFields =
+        selectedType == HabitType.number ||
+        selectedType == HabitType.counter;
+
     return AlertDialog(
-      title: const Text("Add Habit"),
+      title: const Text('Add Habit'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-
             TextField(
               controller: nameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
-                hintText: "Habit name",
+                labelText: 'Habit name',
+                border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
-            GestureDetector(
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
               onTap: () async {
                 final result = await showDialog<String>(
                   context: context,
                   builder: (_) => const IconPickerDialog(),
                 );
 
-                if (result != null) {
-                  setState(() {
-                    selectedIcon = result;
-                  });
+                if (result != null && mounted) {
+                  setState(() => selectedIcon = result);
                 }
               },
               child: Row(
@@ -82,67 +137,61 @@ class _AddHabitDialogState
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    "Choose Icon",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  const Text('Choose Icon'),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right),
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<HabitType>(
               initialValue: selectedType,
               decoration: const InputDecoration(
-                labelText: "Habit Type",
+                labelText: 'Habit type',
                 border: OutlineInputBorder(),
               ),
               items: const [
                 DropdownMenuItem(
                   value: HabitType.checkbox,
-                  child: Text("Checkbox"),
+                  child: Text('Checkbox'),
                 ),
                 DropdownMenuItem(
                   value: HabitType.number,
-                  child: Text("Number Goal"),
+                  child: Text('Number Goal'),
                 ),
                 DropdownMenuItem(
                   value: HabitType.counter,
-                  child: Text("Counter"),
+                  child: Text('Counter'),
                 ),
                 DropdownMenuItem(
                   value: HabitType.rating,
-                  child: Text("Rating"),
+                  child: Text('Rating'),
                 ),
               ],
               onChanged: (value) {
                 if (value != null) {
-                  setState(() {
-                    selectedType = value;
-                  });
+                  setState(() => selectedType = value);
                 }
               },
             ),
-
-            if (selectedType == HabitType.number) ...[
+            if (usesGoalAndCounterFields) ...[
               const SizedBox(height: 16),
-
               TextField(
                 controller: goalController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(
+                keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration:
-                    const InputDecoration(
-                  labelText: "Daily Goal",
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: selectedType == HabitType.counter
+                      ? 'Daily Goal (optional)'
+                      : 'Daily Goal',
+                  hintText: selectedType == HabitType.counter
+                      ? 'e.g. 5 pages'
+                      : 'Enter target',
+                  border: const OutlineInputBorder(),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               TextField(
                 controller: unitController,
                 decoration: const InputDecoration(
@@ -151,9 +200,7 @@ class _AddHabitDialogState
                   border: OutlineInputBorder(),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               TextField(
                 controller: incrementController,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -161,33 +208,7 @@ class _AddHabitDialogState
                 ),
                 decoration: const InputDecoration(
                   labelText: 'Increment step',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-
-            if (selectedType == HabitType.counter) ...[
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: unitController,
-                decoration: const InputDecoration(
-                  labelText: 'Unit (optional)',
-                  hintText: 'steps, pages, glasses...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: incrementController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Increment step',
-                  hintText: 'Example: 1, 5, 0.5, 500',
+                  hintText: 'e.g. 1, 5, 0.5',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -196,35 +217,13 @@ class _AddHabitDialogState
         ),
       ),
       actions: [
-
         TextButton(
-          onPressed: () =>
-              Navigator.pop(context),
-          child: const Text("Cancel"),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
-
         ElevatedButton(
-          onPressed: () {
-            Navigator.pop(
-              context,
-              AddHabitResult(
-                name: nameController.text.trim(),
-                iconName: selectedIcon,
-                type: selectedType,
-                targetValue: selectedType == HabitType.number
-                    ? double.tryParse(goalController.text)
-                    : null,
-                hasGoal: selectedType == HabitType.number,
-                unit: unitController.text.trim().isEmpty
-                    ? null
-                    : unitController.text.trim(),
-
-                incrementStep:
-                    double.tryParse(incrementController.text) ?? 1,
-              )
-            );
-          },
-          child: const Text("Add"),
+          onPressed: saveHabit,
+          child: const Text('Add'),
         ),
       ],
     );
