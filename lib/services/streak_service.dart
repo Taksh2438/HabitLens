@@ -1,4 +1,3 @@
-
 import '../models/habit.dart';
 import '../models/habit_record.dart';
 import '../models/habit_type.dart';
@@ -9,16 +8,18 @@ class StreakService {
 
   static String todayKey() => _dateKey(DateTime.now());
 
-  static bool _isRecordCompleted(Habit habit, HabitRecord record) {
+  static bool isRecordCompleted(Habit habit, HabitRecord record) {
     switch (habit.type) {
       case HabitType.checkbox:
         return record.completed;
+
       case HabitType.number:
       case HabitType.counter:
         final target = habit.targetValue;
         return target != null &&
             target > 0 &&
             (record.value ?? 0) >= target;
+
       case HabitType.rating:
         return (record.value ?? 0) > 0;
     }
@@ -29,8 +30,9 @@ class StreakService {
     final index = habit.records.lastIndexWhere(
       (record) => record.date == today,
     );
+
     return index >= 0 &&
-        _isRecordCompleted(habit, habit.records[index]);
+        isRecordCompleted(habit, habit.records[index]);
   }
 
   static void toggleToday(Habit habit) {
@@ -59,17 +61,17 @@ class StreakService {
       (record) => record.date == today,
     );
 
-    final record = HabitRecord(
-      date: today,
-      completed: false,
-      value: value,
-    );
-
     if (index >= 0) {
       habit.records[index].value = value;
       habit.records[index].completed = false;
     } else {
-      habit.records.add(record);
+      habit.records.add(
+        HabitRecord(
+          date: today,
+          completed: false,
+          value: value,
+        ),
+      );
     }
 
     recalculate(habit);
@@ -79,7 +81,8 @@ class StreakService {
     final completedDates = <String>{};
 
     for (final record in habit.records) {
-      if (_isRecordCompleted(habit, record)) {
+      if (isRecordCompleted(habit, record) &&
+          DateTime.tryParse(record.date) != null) {
         completedDates.add(record.date);
       }
     }
@@ -110,7 +113,8 @@ class StreakService {
 
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
-    final yesterday = _dateKey(todayDate.subtract(const Duration(days: 1)));
+    final yesterday =
+        _dateKey(todayDate.subtract(const Duration(days: 1)));
 
     var cursor = completedDates.contains(todayKey())
         ? todayDate
