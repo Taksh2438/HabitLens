@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/habit.dart';
 
 class StorageService {
@@ -10,7 +8,6 @@ class StorageService {
 
   static Future<void> saveHabits(List<Habit> habits) async {
     final prefs = await SharedPreferences.getInstance();
-
     final jsonList = habits.map((habit) => habit.toJson()).toList();
 
     await prefs.setString(habitsKey, jsonEncode(jsonList));
@@ -20,16 +17,13 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString(habitsKey);
 
-    if (jsonString == null || jsonString.isEmpty) {
+    if (jsonString == null || jsonString.trim().isEmpty) {
       return [];
     }
 
     try {
       final dynamic decoded = jsonDecode(jsonString);
-
-      if (decoded is! List) {
-        return [];
-      }
+      if (decoded is! List) return [];
 
       final habits = <Habit>[];
 
@@ -41,15 +35,13 @@ class StorageService {
             Habit.fromJson(Map<String, dynamic>.from(item)),
           );
         } catch (_) {
-          // Skip an invalid habit instead of crashing the app.
+          // Skip this habit if its saved data is invalid.
         }
       }
 
       return habits;
-    } on FormatException {
-      // Malformed JSON: keep the app usable.
-      return [];
     } catch (_) {
+      // Keep the app usable if the saved JSON is corrupted.
       return [];
     }
   }

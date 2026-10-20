@@ -34,24 +34,22 @@ class Habit {
     List<HabitRecord>? records,
   }) : records = records ?? [];
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'icon': icon,
-      'unit': unit,
-      'type': type.name,
-      'hasGoal': hasGoal,
-      'isArchived': isArchived,
-      'targetValue': targetValue,
-      'currentStreak': currentStreak,
-      'longestStreak': longestStreak,
-      'incrementStep': incrementStep,
-      'totalCompletions': totalCompletions,
-      'createdDate': createdDate.toIso8601String(),
-      'records': records.map((record) => record.toJson()).toList(),
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'icon': icon,
+        'unit': unit,
+        'type': type.name,
+        'hasGoal': hasGoal,
+        'isArchived': isArchived,
+        'targetValue': targetValue,
+        'currentStreak': currentStreak,
+        'longestStreak': longestStreak,
+        'incrementStep': incrementStep,
+        'totalCompletions': totalCompletions,
+        'createdDate': createdDate.toIso8601String(),
+        'records': records.map((record) => record.toJson()).toList(),
+      };
 
   factory Habit.fromJson(Map<String, dynamic> json) {
     final createdDate = DateTime.tryParse(
@@ -60,16 +58,18 @@ class Habit {
         DateTime.now();
 
     final typeName = json['type']?.toString();
+    final target = _toDouble(json['targetValue']);
+    final rawName = json['name']?.toString().trim();
 
     return Habit(
       id: json['id']?.toString() ??
           'legacy-${createdDate.microsecondsSinceEpoch}',
-      name: json['name']?.toString() ?? 'Untitled habit',
+      name: rawName == null || rawName.isEmpty ? 'Untitled habit' : rawName,
       icon: json['icon']?.toString() ?? '✅',
       unit: json['unit']?.toString(),
-      hasGoal: json['hasGoal'] == true,
+      hasGoal: json['hasGoal'] == true || target != null,
       type: HabitType.values.firstWhere(
-        (type) => type.name == typeName,
+        (value) => value.name == typeName,
         orElse: () => HabitType.checkbox,
       ),
       isArchived: json['isArchived'] == true,
@@ -78,7 +78,7 @@ class Habit {
       totalCompletions: _toInt(json['totalCompletions']) ?? 0,
       createdDate: createdDate,
       records: _readRecords(json['records']),
-      targetValue: _toDouble(json['targetValue']),
+      targetValue: target,
       incrementStep: _toDouble(json['incrementStep']) ?? 1,
     );
   }
@@ -89,8 +89,13 @@ class Habit {
   }
 
   static double? _toDouble(dynamic value) {
-    if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '');
+    if (value is num) {
+      final number = value.toDouble();
+      return number.isFinite ? number : null;
+    }
+
+    final number = double.tryParse(value?.toString() ?? '');
+    return number != null && number.isFinite ? number : null;
   }
 
   static List<HabitRecord> _readRecords(dynamic value) {
@@ -106,7 +111,7 @@ class Habit {
           HabitRecord.fromJson(Map<String, dynamic>.from(item)),
         );
       } catch (_) {
-        // Ignore malformed records while loading saved habits.
+        // Ignore an invalid record and keep loading the other records.
       }
     }
 
