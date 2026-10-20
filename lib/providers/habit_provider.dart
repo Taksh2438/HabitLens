@@ -28,14 +28,25 @@ class HabitProvider extends ChangeNotifier {
     String? unit,
     double incrementStep,
   ) async {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) return;
+
+    var idValue = DateTime.now().microsecondsSinceEpoch;
+
+    while (_habits.any((habit) => habit.id == idValue.toString())) {
+      idValue++;
+    }
+
+    final now = DateTime.now();
+
     _habits.add(
       Habit(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: name,
+        id: idValue.toString(),
+        name: cleanName,
         icon: icon,
         type: type,
         targetValue: targetValue,
-        createdDate: DateTime.now(),
+        createdDate: now,
         hasGoal: hasGoal,
         unit: unit,
         incrementStep: incrementStep,
@@ -54,14 +65,20 @@ class HabitProvider extends ChangeNotifier {
     String? unit,
     double? incrementStep,
   }) async {
-    final habit = _habits.firstWhere((h) => h.id == id);
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) return;
 
-    habit.name = name;
+    final index = _habits.indexWhere((habit) => habit.id == id);
+    if (index == -1) return;
+
+    final habit = _habits[index];
+
+    habit.name = cleanName;
     habit.icon = icon;
     habit.targetValue = targetValue;
     habit.unit = unit;
 
-    if (incrementStep != null) {
+    if (incrementStep != null && incrementStep > 0) {
       habit.incrementStep = incrementStep;
     }
 
@@ -69,51 +86,37 @@ class HabitProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteHabits(
-    List<String> ids,
-  ) async {
-    _habits.removeWhere(
-      (habit) => ids.contains(habit.id),
-    );
+  Future<void> deleteHabits(List<String> ids) async {
+    _habits.removeWhere((habit) => ids.contains(habit.id));
 
     await saveHabits();
     notifyListeners();
   }
 
-  Future<void> toggleHabit(
-    Habit habit,
-  ) async {
+  Future<void> toggleHabit(Habit habit) async {
     StreakService.toggleToday(habit);
 
     await saveHabits();
     notifyListeners();
   }
 
-  Future<void> setHabitValue(
-    Habit habit,
-    double value,
-  ) async {
-    StreakService.setTodayValue(
-      habit,
-      value,
-    );
+  Future<void> setHabitValue(Habit habit, double value) async {
+    StreakService.setTodayValue(habit, value);
 
     await saveHabits();
     notifyListeners();
   }
 
-  Future<void> incrementCounter(
-    Habit habit,
-  ) async {
+  Future<void> incrementCounter(Habit habit) async {
     final today = StreakService.todayKey();
 
-    final record = habit.records.where(
-      (r) => r.date == today,
+    final records = habit.records.where(
+      (record) => record.date == today,
     );
 
-    final current = record.isEmpty
+    final current = records.isEmpty
         ? 0.0
-        : (record.first.value ?? 0.0);
+        : (records.first.value ?? 0.0);
 
     await setHabitValue(
       habit,
@@ -121,26 +124,21 @@ class HabitProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> decrementCounter(
-    Habit habit,
-  ) async {
+  Future<void> decrementCounter(Habit habit) async {
     final today = StreakService.todayKey();
 
-    final record = habit.records.where(
-      (r) => r.date == today,
+    final records = habit.records.where(
+      (record) => record.date == today,
     );
 
-    final current = record.isEmpty
+    final current = records.isEmpty
         ? 0.0
-        : (record.first.value ?? 0.0);
+        : (records.first.value ?? 0.0);
 
-    final newValue =
-        (current - habit.incrementStep)
-            .clamp(0.0, double.infinity);
+    final newValue = (current - habit.incrementStep)
+        .clamp(0.0, double.infinity)
+        .toDouble();
 
-    await setHabitValue(
-      habit,
-      newValue,
-    );
+    await setHabitValue(habit, newValue);
   }
 }

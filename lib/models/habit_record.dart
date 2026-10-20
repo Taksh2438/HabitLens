@@ -9,13 +9,15 @@ class HabitRecord {
     this.value,
   });
 
-  factory HabitRecord.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory HabitRecord.fromJson(Map<String, dynamic> json) {
+    final rawValue = json['value'];
+
     return HabitRecord(
-      date: json['date'],
-      completed: json['completed'],
-      value: (json['value'] as num?)?.toDouble(),
+      date: json['date']?.toString() ?? '',
+      completed: json['completed'] == true,
+      value: rawValue is num
+          ? rawValue.toDouble()
+          : double.tryParse(rawValue?.toString() ?? ''),
     );
   }
 
